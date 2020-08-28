@@ -12,14 +12,69 @@ function logx(...x) {
   process.exit()
 }
 
+function parseProc(x) {
+  x = x.$
+  if (x.name.match(/ATTACK$/)) {
+    let d = {
+      action: 'ATTACK',
+      type: x.name.replace(/_ATTACK/g, ''),
+      min: parseInt(x.min),
+      max: parseInt(x.max),
+      instant: x.instant === 'yes' ? 1 : 0,
+      rate: parseFloat(x.rate),
+      cd: parseFloat(x.internal_cd),
+      coe: x.spell_dmg_coefficient
+    }
+
+    for (let k in x) {
+      if (k != 'name' && k != 'min' && k != 'max' && k != 'min' && k != 'rate' && k != 'instant' && k != 'internal_cd' && k != 'spell_dmg_coefficient') {
+        log('untreated proc key', k, x)
+      }
+    }
+
+    return d
+  } else if (x.name === 'GENERIC_STAT_BUFF') {
+    let d = {
+      action: 'BUFF',
+      type: x.type,
+      amount: parseFloat(x.amount),
+      instant: x.instant === 'yes' ? 1 : 0,
+      rate: parseFloat(x.rate),
+      duration: parseFloat(x.duration),
+      cd: parseFloat(x.internal_cd),
+      melee_only: x.proc_melee_weapon_side == 'yes' ? 1 : 0
+    }
+
+    for (let k in x) {
+      if (k != 'name' && k != 'type' && k != 'amount' && k != 'rate' && k != 'instant' && k != 'internal_cd' && k != 'duration' && k != 'proc_melee_weapon_side') {
+        log('untreated proc key', k, x)
+      }
+    }
+
+
+    return d
+  }
+  else
+    log('unrecgonized proc', JSON.stringify(x))
+}
+
 function parseItem(x) {
   let a = {
-    id: parseInt, name: 1, icon(x) {
+    id: parseInt,
+    name: 1,
+    icon(x) {
       return x.toLowerCase().replace(/.png$/, '')
-    }, phase: parseInt, type: 1, slot: 1, unique(x) {
+    },
+    phase: parseInt,
+    type: 1,
+    slot: 1,
+    unique(x) {
       return x === 'no' ? 0 : 1
     },
-    req_lvl: parseInt, item_lvl: parseInt, quality: 1, boe(x) {
+    req_lvl: parseInt,
+    item_lvl: parseInt,
+    quality: 1,
+    boe(x) {
       return x === 'no' ? 0 : 1
     }, faction: 1
   }
@@ -31,6 +86,9 @@ function parseItem(x) {
       AGILITY: 0,
       STRENGTH: 0,
       SPIRIT: 0,
+
+      SPELL_HIT_CHANCE: 0,
+      SPELL_CRIT_CHANCE: 0,
       SPELL_DAMAGE: 0,
       SPELL_DAMAGE_FIRE: 0,
       SPELL_DAMAGE_FROST: 0,
@@ -40,42 +98,48 @@ function parseItem(x) {
       SPELL_DAMAGE_UNDEAD: 0,
       SPELL_DAMAGE_DEMON: 0,
       SPELL_DAMAGE_ARCANE: 0,
-      SPELL_HIT_CHANCE: 0,
+
+      SPELL_PENETRATION: 0,
+
       FIRE_RESISTANCE: 0,
       ARCANE_RESISTANCE: 0,
       SHADOW_RESISTANCE: 0,
       NATURE_RESISTANCE: 0,
       FROST_RESISTANCE: 0,
-      SPELL_CRIT_CHANCE: 0,
-      HEALTH_PER_5: 0,
-      MANA_PER_5: 0,
-      ATTACK_POWER: 0,
-      CRIT_CHANCE: 0,
-      DAGGER_SKILL: 0,
-      DODGE_CHANCE: 0,
-      HIT_CHANCE: 0,
-      BLOCK_VALUE: 0,
-      SPELL_PENETRATION: 0,
-      PARRY_CHANCE: 0,
-      DEFENSE: 0,
-      BOW_SKILL: 0,
-      GUN_SKILL: 0,
-      CROSSBOW_SKILL: 0,
       ALL_RESISTANCE: 0,
-      BLOCK_CHANCE: 0,
-      AXE_SKILL: 0,
-      SWORD_SKILL: 0,
-      MACE_SKILL: 0,
+
+      HIT_CHANCE: 0,
+      CRIT_CHANCE: 0,
       RANGED_ATTACK_SPEED: 0,
+      ATTACK_POWER: 0,
       ATTACK_POWER_UNDEAD: 0,
       ATTACK_POWER_DEMON: 0,
       ATTACK_POWER_BEAST: 0,
       ATTACK_POWER_DRAGONKIN: 0,
+      RANGED_ATTACK_POWER: 0,
       FERAL_ATTACK_POWER: 0,
+
       WEAPON_DAMAGE: 0,
+
+      BLOCK_CHANCE: 0,
+      BLOCK_VALUE: 0,
+      DODGE_CHANCE: 0,
+
+      HEALTH_PER_5: 0,
+      MANA_PER_5: 0,
+
+      PARRY_CHANCE: 0,
+      DEFENSE: 0,
+
+      AXE_SKILL: 0,
+      SWORD_SKILL: 0,
+      MACE_SKILL: 0,
+      BOW_SKILL: 0,
+      GUN_SKILL: 0,
+      CROSSBOW_SKILL: 0,
+      DAGGER_SKILL: 0,
       TWOHAND_AXE_SKILL: 0,
       TWOHAND_SWORD_SKILL: 0,
-      RANGED_ATTACK_POWER: 0
     }
   }
 
@@ -135,6 +199,10 @@ function parseItem(x) {
       d.unique = x[k].map(c => c.$.item_id)
     } else if (k === 'dps') {
       d.dps = x[k][0].$.value
+    } else if (k === 'proc') {
+      d.proc = x[k][0].spell.map(parseProc)
+    } else if (k === 'flavour_text') {
+      d.text = x[k][0].trim()
     }
 
     else log('unrecgonized', k, JSON.stringify(x[k]))
