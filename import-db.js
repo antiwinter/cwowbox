@@ -38,6 +38,7 @@ function parseItem(x) {
       SPELL_DAMAGE_NATURE: 0,
       SPELL_DAMAGE_HOLY: 0,
       SPELL_DAMAGE_UNDEAD: 0,
+      SPELL_DAMAGE_DEMON: 0,
       SPELL_DAMAGE_ARCANE: 0,
       SPELL_HIT_CHANCE: 0,
       FIRE_RESISTANCE: 0,
@@ -64,10 +65,13 @@ function parseItem(x) {
       BLOCK_CHANCE: 0,
       AXE_SKILL: 0,
       SWORD_SKILL: 0,
+      MACE_SKILL: 0,
       RANGED_ATTACK_SPEED: 0,
       ATTACK_POWER_UNDEAD: 0,
       ATTACK_POWER_DEMON: 0,
       ATTACK_POWER_BEAST: 0,
+      ATTACK_POWER_DRAGONKIN: 0,
+      FERAL_ATTACK_POWER: 0,
       WEAPON_DAMAGE: 0,
       TWOHAND_AXE_SKILL: 0,
       TWOHAND_SWORD_SKILL: 0,
@@ -75,8 +79,8 @@ function parseItem(x) {
     }
   }
 
-  if (x.info[0].$.name.match(/seek/i))
-    log('in <-', JSON.stringify(x, null, 2))
+  // if (x.info[0].$.name.match(/Wind/i))
+  //   log('in <-', JSON.stringify(x, null, 2))
 
   for (let k in x) {
     if (k === '$') {
@@ -84,7 +88,7 @@ function parseItem(x) {
         if (k1 in a) {
           d[k1] = typeof (a[k1]) === 'function' ? a[k1](x[k][k1]) : x[k][k1]
         } else {
-          logx('unrecgonized', k, k1)
+          logx('unrecgonized $', k, k1)
         }
       }
     } else if (k === 'info') {
@@ -97,7 +101,7 @@ function parseItem(x) {
           d[k1] = d[k1] = typeof (a[k1]) === 'function' ? a[k1](x.info[0].$[k1]) : x.info[0].$[k1]
 
         } else {
-          logx('unrecgonized', k, k1)
+          logx('unrecgonized info', k, k1)
         }
       }
     } else if (k === 'stats') {
@@ -142,11 +146,13 @@ function parseItem(x) {
 
   // log('out >>', d)
 
+  db.push(d)
   return d
 }
 
-rdir('../ClassicSim', ['equipment_paths.xml',
+rdir('../ClassicSim/Equipment/EquipmentDb', ['equipment_paths.xml',
   'random_affixes.xml', 'set_bonuses.xml'], (err, files) => {
+    // logx(_.filter(files, x => x.match(/.xml$/)))
     _.filter(files, x => x.match(/.xml$/)).forEach(f => {
       ps(fs.readFileSync(f, 'utf-8'), (err, x) => {
         // log(JSON.stringify(x, null, 2))
@@ -154,12 +160,16 @@ rdir('../ClassicSim', ['equipment_paths.xml',
 
 
         try {
-          if (x.items)
-            x.items.item.forEach(parseItem)
-          else if (x.weapons)
-            x.weapons.melee_weapon.forEach(parseItem)
-          else
-            x.projectiles.projectile.forEach(parseItem)
+          for (let k in x) {
+            if (typeof (x[k]) != 'object')
+              logx(f, k, 'not object', x[k])
+            for (let k1 in x[k]) {
+              if (!Array.isArray(x[k][k1])) {
+                logx(f, k, k1, 'not array', x[k][k1])
+              }
+              x[k][k1].forEach(parseItem)
+            }
+          }
         } catch (err) {
           log(err)
           logx('wrong xml', JSON.stringify(x, null, 2))
@@ -167,4 +177,7 @@ rdir('../ClassicSim', ['equipment_paths.xml',
         // process.exit()
       })
     })
+
+    log('wrting file')
+    fs.writeFileSync('./db.json', JSON.stringify(db), 'utf-8')
   })
